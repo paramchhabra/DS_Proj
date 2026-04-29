@@ -1,11 +1,9 @@
 // App.jsx
 // Install deps: npm install axios
-// Make sure the FastAPI server is running on http://localhost:8000
 
 import { useState, useCallback } from "react";
 import axios from "axios";
-
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
