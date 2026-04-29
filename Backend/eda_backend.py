@@ -18,6 +18,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def safe_float(x):
+    if pd.isna(x) or (isinstance(x, float) and math.isnan(x)):
+        return None
+    return round(float(x), 4)
 
 def infer_semantic_type(series: pd.Series) -> str:
     """Infer a human-friendly data type beyond pandas dtype."""
@@ -98,13 +102,13 @@ async def upload_file(file: UploadFile = File(...)):
         if semantic_type == "numeric":
             desc = series.describe()
             col_info["stats"] = {
-                "mean":   round(float(desc["mean"]), 4),
-                "median": round(float(series.median()), 4),
-                "std":    round(float(desc["std"]), 4),
-                "min":    round(float(desc["min"]), 4),
-                "max":    round(float(desc["max"]), 4),
-                "q25":    round(float(desc["25%"]), 4),
-                "q75":    round(float(desc["75%"]), 4),
+                "mean":   safe_float(desc.get("mean")),
+                "median": safe_float(series.median()),
+                "std":    safe_float(desc.get("std")),
+                "min":    safe_float(desc.get("min")),
+                "max":    safe_float(desc.get("max")),
+                "q25":    safe_float(desc.get("25%")),
+                "q75":    safe_float(desc.get("75%")),
             }
         else:
             col_info["stats"] = None
