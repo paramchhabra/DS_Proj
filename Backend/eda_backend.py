@@ -12,7 +12,8 @@ app = FastAPI(title="EDA Explorer API", version="1.0.0")
 # Allow requests from the React dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # allow all (for now)
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
