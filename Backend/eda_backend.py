@@ -6,6 +6,7 @@ import io
 import pandas as pd
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import math
 
 app = FastAPI(title="EDA Explorer API", version="1.0.0")
 
