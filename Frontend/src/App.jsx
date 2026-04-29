@@ -91,7 +91,7 @@ export default function EDAExplorer() {
       setResult(data);
     } catch (err) {
       // const msg = err.response?.data?.detail || "Upload failed. Is the backend running?";
-      const msg = err.response?.data?.detail;
+      const msg = err.response?.data?.detail || "LMAO";
       setError(msg);
     } finally {
       setLoading(false);
