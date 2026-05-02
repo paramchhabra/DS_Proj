@@ -317,22 +317,28 @@ export default function EDAExplorer() {
                   <span style={{ color: "#94a3b8", fontSize: 12 }}>{type}</span>
                 </div>
               ))}
-        {result?.suggestions && (
+        {result?.suggestions && typeof result.suggestions === 'object' && (
           <div style={{ marginTop: 24 }}>
-            {Object.entries(result.suggestions).map(([category, items]) => (
-              <div key={category} style={{ marginBottom: 24 }}>
-                <h3 style={{ color: "#64748b", fontSize: 14, marginBottom: 8 }}>
-                  {category.replace(/[_]/g, ' ')}
-                </h3>
-                <ul style={{ listStyle: 'none', padding: 0 }}>
-                  {items.map((item, i) => (
-                    <li key={i} style={{ marginBottom: 8, padding: '8px 12px', background: '#2e3347', borderRadius: 4 }}>
-                      <SuggestionItem suggestion={item} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            {Object.entries(result.suggestions)
+              .filter(([category, items]) => Array.isArray(items))
+              .map(([category, items]) => (
+                <div key={category} style={{ marginBottom: 24 }}>
+                  <h3 style={{ color: "#64748b", fontSize: 14, marginBottom: 8, textTransform: "capitalize" }}>
+                    {category.replace(/[_]/g, ' ')}
+                  </h3>
+                  {items.length > 0 ? (
+                    <div>
+                      {items.map((item, i) => (
+                        <div key={i} style={{ marginBottom: 12 }}>
+                          <SuggestionItem suggestion={item} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ color: "#64748b", fontSize: 13 }}>No suggestions for this category</p>
+                  )}
+                </div>
+              ))}
           </div>
         )}
             </div>
