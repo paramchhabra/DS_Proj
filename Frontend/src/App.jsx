@@ -1,9 +1,7 @@
-// App.jsx
-// Install deps: npm install axios
-
 import { useState, useCallback } from "react";
 import axios from "axios";
-const API_URL = import.meta.env.VITE_API_URL;
+
+const API_URL = "https://ds-proj-xmrc.onrender.com";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -95,7 +93,7 @@ function SuggestionItem({ suggestion }) {
           Actions:
         </h4>
         <ul style={{ margin: 0, paddingLeft: 20, color: "#cbd5e1", fontSize: 12 }}>
-          {suggestion.actions.map((action, i) => (
+          {(suggestion.actions || []).map((action, i) => (
             <li key={i} style={{ marginBottom: 4 }}>{action}</li>
           ))}
         </ul>
@@ -135,9 +133,8 @@ export default function EDAExplorer() {
       });
       setResult(data);
     } catch (err) {
-      // const msg = err.response?.data?.detail || "Upload failed. Is the backend running?";
       const msg = err.response?.data;
-      setError(msg);
+      setError(typeof msg === "string" ? msg : JSON.stringify(msg));
     } finally {
       setLoading(false);
     }
@@ -228,7 +225,7 @@ export default function EDAExplorer() {
                     </tr>
                   </thead>
                   <tbody>
-                    {result.columns.map((c, i) => (
+                    {(result.columns || []).map((c, i) => (
                       <tr key={c.name}
                         style={{ borderBottom: "1px solid #1a1d2e" }}
                         onMouseEnter={e => e.currentTarget.style.background = "#252838"}
@@ -291,7 +288,7 @@ export default function EDAExplorer() {
                     </tr>
                   </thead>
                   <tbody>
-                    {result.preview.map((row, i) => (
+                    {(result.preview || []).map((row, i) => (
                       <tr key={i}
                         style={{ borderBottom: "1px solid #1a1d2e" }}
                         onMouseEnter={e => e.currentTarget.style.background = "#252838"}
@@ -317,31 +314,33 @@ export default function EDAExplorer() {
                   <span style={{ color: "#94a3b8", fontSize: 12 }}>{type}</span>
                 </div>
               ))}
-        {result?.suggestions && typeof result.suggestions === 'object' && (
-          <div style={{ marginTop: 24 }}>
-            {Object.entries(result.suggestions)
-              .filter(([category, items]) => Array.isArray(items))
-              .map(([category, items]) => (
-                <div key={category} style={{ marginBottom: 24 }}>
-                  <h3 style={{ color: "#64748b", fontSize: 14, marginBottom: 8, textTransform: "capitalize" }}>
-                    {category.replace(/[_]/g, ' ')}
-                  </h3>
-                  {items.length > 0 ? (
-                    <div>
-                      {items.map((item, i) => (
-                        <div key={i} style={{ marginBottom: 12 }}>
-                          <SuggestionItem suggestion={item} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p style={{ color: "#64748b", fontSize: 13 }}>No suggestions for this category</p>
-                  )}
-                </div>
-              ))}
-          </div>
-        )}
             </div>
+
+            {/* ── Suggestions ── */}
+            {result?.suggestions && typeof result.suggestions === 'object' && (
+              <div style={{ marginTop: 24 }}>
+                {Object.entries(result.suggestions)
+                  .filter(([, items]) => Array.isArray(items))
+                  .map(([category, items]) => (
+                    <div key={category} style={{ marginBottom: 24 }}>
+                      <h3 style={{ color: "#64748b", fontSize: 14, marginBottom: 8, textTransform: "capitalize" }}>
+                        {category.replace(/[_]/g, ' ')}
+                      </h3>
+                      {items.length > 0 ? (
+                        <div>
+                          {items.map((item, i) => (
+                            <div key={i} style={{ marginBottom: 12 }}>
+                              <SuggestionItem suggestion={item} />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ color: "#64748b", fontSize: 13 }}>No suggestions for this category</p>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
           </>
         )}
       </div>
