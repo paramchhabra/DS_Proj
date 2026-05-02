@@ -10,7 +10,7 @@ app = FastAPI(title="EDA Explorer API", version="1.0.0")
 # ✅ CORS (production-safe)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://ds-proj-gamma.vercel.app"],
+    allow_origins=["https://ds-proj-gamma.vercel.app","*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
