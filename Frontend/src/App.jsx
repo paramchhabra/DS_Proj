@@ -59,6 +59,51 @@ function MissingBar({ pct }) {
   );
 }
 
+function SeverityBadge({ severity }) {
+  const colors = {
+    high:   { bg: "#991b1b", text: "#fecaca", border: "#ef4444" },
+    medium: { bg: "#7c2d12", text: "#fed7aa", border: "#f97316" },
+    low:    { bg: "#14532d", text: "#bbf7d0", border: "#22c55e" }
+  };
+  const c = colors[severity] || colors.low;
+  return (
+    <span style={{
+      background: c.bg, color: c.text, border: `1px solid ${c.border}`,
+      borderRadius: 6, padding: "2px 10px", fontSize: 11,
+      fontWeight: 700, letterSpacing: 0.5,
+    }}>{severity}</span>
+  );
+}
+
+function SuggestionItem({ suggestion }) {
+  return (
+    <div style={{
+      background: "#1a1d2e", borderRadius: 8, padding: "16px",
+      border: "1px solid #2e3347", marginBottom: 12
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+        <SeverityBadge severity={suggestion.severity} />
+        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>
+          {suggestion.title}
+        </h3>
+      </div>
+      <p style={{ margin: "0,0,12,0", color: "#94a3b8", fontSize: 13 }}>
+        {suggestion.message}
+      </p>
+      <div style={{ marginTop: 12 }}>
+        <h4 style={{ margin: "0,0,8,0", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+          Actions:
+        </h4>
+        <ul style={{ margin: 0, paddingLeft: 20, color: "#cbd5e1", fontSize: 12 }}>
+          {suggestion.actions.map((action, i) => (
+            <li key={i} style={{ marginBottom: 4 }}>{action}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function SectionHeader({ emoji, title, sub }) {
   return (
     <div style={{ padding: "16px 20px", borderBottom: "1px solid #2e3347", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -272,6 +317,24 @@ export default function EDAExplorer() {
                   <span style={{ color: "#94a3b8", fontSize: 12 }}>{type}</span>
                 </div>
               ))}
+        {result?.suggestions && (
+          <div style={{ marginTop: 24 }}>
+            {Object.entries(result.suggestions).map(([category, items]) => (
+              <div key={category} style={{ marginBottom: 24 }}>
+                <h3 style={{ color: "#64748b", fontSize: 14, marginBottom: 8 }}>
+                  {category.replace(/[_]/g, ' ')}
+                </h3>
+                <ul style={{ listStyle: 'none', padding: 0 }}>
+                  {items.map((item, i) => (
+                    <li key={i} style={{ marginBottom: 8, padding: '8px 12px', background: '#2e3347', borderRadius: 4 }}>
+                      <SuggestionItem suggestion={item} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
             </div>
           </>
         )}
