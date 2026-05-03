@@ -1,9 +1,6 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ScatterChart, Scatter,
-} from "recharts";
+
 
 const API_URL = "https://ds-proj-xmrc.onrender.com";
 
@@ -172,42 +169,158 @@ function VizCard({ title, reason, insights, children, defaultOpen = false }) {
 
 // ─── Chart components ────────────────────────────────────────────────────────
 
+// Pure SVG histogram — no recharts needed
 function HistogramChart({ config }) {
+  const data = config.data || [];
+  if (!data.length) return null;
+
+  const W = 540, H = 200, PL = 44, PR = 12, PT = 8, PB = 48;
+  const innerW = W - PL - PR, innerH = H - PT - PB;
+  const maxCount = Math.max(...data.map(d => d.count), 1);
+  const barW = innerW / data.length;
+  // Show every Nth label so they don't overlap
+  const step = Math.ceil(data.length / 8);
+  const [tooltip, setTooltip] = useState(null);
+
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={config.data} margin={{ top: 4, right: 8, left: 0, bottom: 40 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#2e3347" />
-        <XAxis dataKey="bin" tick={{ fill: "#64748b", fontSize: 10 }} angle={-35} textAnchor="end" interval="preserveStartEnd" />
-        <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
-        <Tooltip
-          contentStyle={{ background: "#1e2130", border: "1px solid #2e3347", borderRadius: 8, color: "#e2e8f0" }}
-          labelStyle={{ color: "#94a3b8", fontSize: 12 }}
-        />
-        <Bar dataKey="count" fill="#6366f1" radius={[3, 3, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
+    <div style={{ position: "relative" }}>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible" }}>
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map(t => {
+          const y = PT + innerH * (1 - t);
+          return (
+            <g key={t}>
+              <line x1={PL} y1={y} x2={PL + innerW} y2={y} stroke="#2e3347" strokeWidth={1} />
+              <text x={PL - 4} y={y + 4} textAnchor="end" fill="#64748b" fontSize={10}>
+                {Math.round(maxCount * t)}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Bars */}
+        {data.map((d, i) => {
+          const bh = (d.count / maxCount) * innerH;
+          const x = PL + i * barW;
+          const y = PT + innerH - bh;
+          return (
+            <g key={i}
+              onMouseEnter={() => setTooltip({ i, x: x + barW / 2, y, d })}
+              onMouseLeave={() => setTooltip(null)}
+              style={{ cursor: "pointer" }}>
+              <rect x={x + 1} y={y} width={barW - 2} height={bh}
+                fill={tooltip?.i === i ? "#818cf8" : "#6366f1"} rx={2} />
+            </g>
+          );
+        })}
+
+        {/* X-axis labels */}
+        {data.map((d, i) => i % step === 0 && (
+          <text key={i} x={PL + i * barW + barW / 2} y={H - PB + 14}
+            textAnchor="middle" fill="#64748b" fontSize={9}
+            transform={`rotate(-30, ${PL + i * barW + barW / 2}, ${H - PB + 14})`}>
+            {d.bin.split("–")[0]}
+          </text>
+        ))}
+
+        {/* Axes */}
+        <line x1={PL} y1={PT} x2={PL} y2={PT + innerH} stroke="#475569" strokeWidth={1} />
+        <line x1={PL} y1={PT + innerH} x2={PL + innerW} y2={PT + innerH} stroke="#475569" strokeWidth={1} />
+      </svg>
+
+      {/* Hover tooltip */}
+      {tooltip && (
+        <div style={{
+          position: "absolute", pointerEvents: "none",
+          left: `calc(${(tooltip.x / W) * 100}% - 60px)`, top: 0,
+          background: "#1e2130", border: "1px solid #2e3347", borderRadius: 6,
+          padding: "6px 10px", fontSize: 12, color: "#e2e8f0", whiteSpace: "nowrap",
+        }}>
+          <div style={{ color: "#64748b", fontSize: 11 }}>{tooltip.d.bin}</div>
+          <div><strong style={{ color: "#a5b4fc" }}>{tooltip.d.count}</strong> values</div>
+        </div>
+      )}
+    </div>
   );
 }
 
+// Pure SVG scatter plot — no recharts needed
 function ScatterPlotChart({ config }) {
+  const { data = [], x_label, y_label, r } = config;
+  if (!data.length) return null;
+
+  const W = 540, H = 240, PL = 48, PR = 16, PT = 12, PB = 40;
+  const innerW = W - PL - PR, innerH = H - PT - PB;
+
+  const xs = data.map(p => p.x).filter(v => v != null);
+  const ys = data.map(p => p.y).filter(v => v != null);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yMin = Math.min(...ys), yMax = Math.max(...ys);
+  const xRange = xMax - xMin || 1, yRange = yMax - yMin || 1;
+
+  const px = v => PL + ((v - xMin) / xRange) * innerW;
+  const py = v => PT + innerH - ((v - yMin) / yRange) * innerH;
+
+  const [tooltip, setTooltip] = useState(null);
+
+  // Axis tick helpers
+  const ticks = (min, max, n = 5) => {
+    const step = (max - min) / (n - 1);
+    return Array.from({ length: n }, (_, i) => min + i * step);
+  };
+
   return (
-    <div>
-      <div style={{ color: "#64748b", fontSize: 12, marginBottom: 8 }}>
-        {config.x_label} vs {config.y_label} · Pearson r = <strong style={{ color: "#a5b4fc" }}>{config.r}</strong>
+    <div style={{ position: "relative" }}>
+      <div style={{ color: "#64748b", fontSize: 12, marginBottom: 6 }}>
+        {x_label} vs {y_label} · Pearson r = <strong style={{ color: "#a5b4fc" }}>{r}</strong>
+        <span style={{ color: "#475569", fontSize: 11, marginLeft: 8 }}>({data.length} pts shown)</span>
       </div>
-      <ResponsiveContainer width="100%" height={240}>
-        <ScatterChart margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#2e3347" />
-          <XAxis dataKey="x" type="number" name={config.x_label} tick={{ fill: "#64748b", fontSize: 11 }} label={{ value: config.x_label, position: "insideBottom", offset: -4, fill: "#64748b", fontSize: 11 }} />
-          <YAxis dataKey="y" type="number" name={config.y_label} tick={{ fill: "#64748b", fontSize: 11 }} label={{ value: config.y_label, angle: -90, position: "insideLeft", fill: "#64748b", fontSize: 11 }} />
-          <Tooltip
-            cursor={{ strokeDasharray: "3 3" }}
-            contentStyle={{ background: "#1e2130", border: "1px solid #2e3347", borderRadius: 8, color: "#e2e8f0" }}
-            formatter={(val, name) => [val, name === "x" ? config.x_label : config.y_label]}
-          />
-          <Scatter data={config.data} fill="#6366f1" fillOpacity={0.55} />
-        </ScatterChart>
-      </ResponsiveContainer>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: "visible" }}>
+        {/* Grid */}
+        {ticks(yMin, yMax).map((v, i) => (
+          <g key={i}>
+            <line x1={PL} y1={py(v)} x2={PL + innerW} y2={py(v)} stroke="#2e3347" strokeWidth={1} strokeDasharray="3 3" />
+            <text x={PL - 4} y={py(v) + 4} textAnchor="end" fill="#64748b" fontSize={9}>
+              {v.toFixed(1)}
+            </text>
+          </g>
+        ))}
+        {ticks(xMin, xMax).map((v, i) => (
+          <text key={i} x={px(v)} y={PT + innerH + 14} textAnchor="middle" fill="#64748b" fontSize={9}>
+            {v.toFixed(1)}
+          </text>
+        ))}
+
+        {/* Points */}
+        {data.map((p, i) => p.x != null && p.y != null && (
+          <circle key={i} cx={px(p.x)} cy={py(p.y)} r={3}
+            fill="#6366f1" fillOpacity={0.5} stroke="#818cf8" strokeWidth={0.5}
+            onMouseEnter={() => setTooltip({ p, cx: px(p.x), cy: py(p.y) })}
+            onMouseLeave={() => setTooltip(null)}
+            style={{ cursor: "crosshair" }} />
+        ))}
+
+        {/* Axes */}
+        <line x1={PL} y1={PT} x2={PL} y2={PT + innerH} stroke="#475569" strokeWidth={1} />
+        <line x1={PL} y1={PT + innerH} x2={PL + innerW} y2={PT + innerH} stroke="#475569" strokeWidth={1} />
+
+        {/* Axis labels */}
+        <text x={PL + innerW / 2} y={H - 4} textAnchor="middle" fill="#64748b" fontSize={11}>{x_label}</text>
+        <text x={12} y={PT + innerH / 2} textAnchor="middle" fill="#64748b" fontSize={11}
+          transform={`rotate(-90, 12, ${PT + innerH / 2})`}>{y_label}</text>
+      </svg>
+
+      {tooltip && (
+        <div style={{
+          position: "absolute", pointerEvents: "none",
+          left: tooltip.cx, top: tooltip.cy - 48,
+          background: "#1e2130", border: "1px solid #2e3347", borderRadius: 6,
+          padding: "5px 10px", fontSize: 11, color: "#e2e8f0", transform: "translateX(-50%)",
+        }}>
+          <div>{x_label}: <strong style={{ color: "#a5b4fc" }}>{tooltip.p.x}</strong></div>
+          <div>{y_label}: <strong style={{ color: "#a5b4fc" }}>{tooltip.p.y}</strong></div>
+        </div>
+      )}
     </div>
   );
 }
