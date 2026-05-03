@@ -137,8 +137,8 @@ function InsightList({ insights }) {
 
 // ─── Expandable visualization card ──────────────────────────────────────────
 
-function VizCard({ title, reason, insights, children }) {
-  const [open, setOpen] = useState(false);
+function VizCard({ title, reason, insights, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={{ background: "#13151f", border: "1px solid #2e3347", borderRadius: 10, marginBottom: 12, overflow: "hidden" }}>
       {/* Header row — always visible */}
@@ -344,8 +344,8 @@ function VisualizationsPanel({ viz }) {
               Histograms are shown only for columns that have notable skewness, heavy tails,
               wide spread, or are in a small dataset. Expand a card to see the chart.
             </p>
-            {viz.histograms.map(h => (
-              <VizCard key={h.column} title={`Histogram — ${h.column}`} reason={h.reason} insights={h.insights}>
+            {viz.histograms.map((h, i) => (
+              <VizCard key={h.column} title={`Histogram — ${h.column}`} reason={h.reason} insights={h.insights} defaultOpen={i === 0}>
                 <HistogramChart config={h.config} />
                 <div style={{ marginTop: 8, display: "flex", gap: 16, flexWrap: "wrap" }}>
                   {[["Skewness", h.config.skewness], ["Kurtosis", h.config.kurtosis], ["CV", h.config.cv]].map(([lbl, val]) => (
@@ -374,7 +374,7 @@ function VisualizationsPanel({ viz }) {
             {viz.box_plots.map(bp => {
               const outlierEntry = viz.outliers.find(o => o.column === bp.column);
               return (
-                <VizCard key={bp.column} title={`Outliers — ${bp.column}`} reason={bp.reason} insights={bp.insights}>
+                <VizCard key={bp.column} title={`Outliers — ${bp.column}`} reason={bp.reason} insights={bp.insights} defaultOpen={i === 0}>
                   <BoxPlotSVG config={bp.config} />
                   {outlierEntry && (
                     <div style={{ marginTop: 14, background: "#0f1117", borderRadius: 8, padding: 12, border: "1px solid #2e3347" }}>
